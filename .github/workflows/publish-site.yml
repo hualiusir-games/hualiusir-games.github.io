@@ -33,6 +33,8 @@ jobs:
           for file in index.html privacy.html delete-data.html app-ads.txt robots.txt assets/icon.png assets/defense.png; do
             curl --fail --silent --show-error --location --retry 3 --max-time 60 --user-agent "HualiusirSitePublisher/1.0" "$SOURCE_ORIGIN/$file" --output "_site/$file"
           done
+          # BIGO assigns a seller ID for each website domain.
+          printf '\nbigo.sg, adbbxsny1t, DIRECT\n' >> _site/app-ads.txt
           touch _site/.nojekyll
       - name: Verify website and advertising authorization
         run: |
@@ -42,9 +44,12 @@ jobs:
           for name in ["index.html", "privacy.html", "delete-data.html", "app-ads.txt", "robots.txt", "assets/icon.png", "assets/defense.png"]:
               assert (site / name).stat().st_size > 0, name
           sellers = {"".join(line.split()) for line in (site / "app-ads.txt").read_text(encoding="utf-8-sig").splitlines()}
+          assert "bigo.sg,adbbxsny1t,DIRECT" in sellers
+          assert "google.com,pub-4447056814927396,DIRECT,f08c47fec0942fa0" in sellers
+          assert "inmobi.com,67d6afab48bd48efbbb504284f3726e5,DIRECT,83e75a7ae333ca9d" in sellers
           assert "vungle.com,6af12a3093f426c33e7af61e,DIRECT,c107d686becd2d77" in sellers
           assert "com.simon0090.holduntildawn" in (site / "index.html").read_text(encoding="utf-8")
-          print("Public website and Liftoff publisher authorization verified.")
+          print("Public website and all four advertising platform authorizations verified.")
           PY
       - name: Upload public website
         uses: actions/upload-pages-artifact@v3
