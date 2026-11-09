@@ -1,0 +1,55 @@
+name: Publish Hualiusir website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Copy the existing public developer website
+        env:
+          SOURCE_ORIGIN: https://hold-until-dawn-game.r8j4crcxsq.chatgpt.site
+        run: |
+          set -euo pipefail
+          mkdir -p _site/assets
+          for file in index.html privacy.html delete-data.html app-ads.txt robots.txt assets/icon.png assets/defense.png; do
+            curl --fail --silent --show-error --location --retry 3 --max-time 60 --user-agent "HualiusirSitePublisher/1.0" "$SOURCE_ORIGIN/$file" --output "_site/$file"
+          done
+          touch _site/.nojekyll
+      - name: Verify website and advertising authorization
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          site = Path("_site")
+          for name in ["index.html", "privacy.html", "delete-data.html", "app-ads.txt", "robots.txt", "assets/icon.png", "assets/defense.png"]:
+              assert (site / name).stat().st_size > 0, name
+          sellers = {"".join(line.split()) for line in (site / "app-ads.txt").read_text(encoding="utf-8-sig").splitlines()}
+          assert "vungle.com,6af12a3093f426c33e7af61e,DIRECT,c107d686becd2d77" in sellers
+          assert "com.simon0090.holduntildawn" in (site / "index.html").read_text(encoding="utf-8")
+          print("Public website and Liftoff publisher authorization verified.")
+          PY
+      - name: Upload public website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
