@@ -49,12 +49,14 @@ jobs:
           sellers = {normalize(line) for line in lines}
           unity_lines = [line.strip() for line in Path(".site-data/unity-app-ads.txt").read_text(encoding="utf-8-sig").splitlines() if line.strip()]
           assert len(unity_lines) == 163, "Unity seller list must contain all dashboard entries"
+          canonical_unity = {normalize(line): line for line in unity_lines}
+          lines = [canonical_unity.get(normalize(line), line) for line in lines]
           for line in unity_lines:
               if normalize(line) not in sellers:
                   lines.append(line)
                   sellers.add(normalize(line))
           ads_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-          assert all(normalize(line) in sellers for line in unity_lines)
+          assert all(line in lines for line in unity_lines)
           assert "unity.com,162167400,DIRECT,96cabb5fbdde37a7" in sellers
           assert "bigo.sg,adbbxsny1t,DIRECT" in sellers
           assert "google.com,pub-4447056814927396,DIRECT,f08c47fec0942fa0" in sellers
