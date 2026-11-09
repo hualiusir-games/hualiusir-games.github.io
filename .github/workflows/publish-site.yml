@@ -55,6 +55,15 @@ jobs:
               if normalize(line) not in sellers:
                   lines.append(line)
                   sellers.add(normalize(line))
+          yandex_lines = [line.strip() for line in Path(".site-data/yandex-app-ads.txt").read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+          assert len(yandex_lines) == 170, "Yandex seller list must contain all dashboard entries"
+          for line in yandex_lines:
+              if line not in lines:
+                  lines.append(line)
+                  sellers.add(normalize(line))
+          assert all(line in lines for line in yandex_lines)
+          assert "yandex.com,334469093,DIRECT" in sellers
+          assert "yango-ads.com,334469093,DIRECT" in sellers
           ads_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
           assert all(line in lines for line in unity_lines)
           assert "unity.com,162167400,DIRECT,96cabb5fbdde37a7" in sellers
@@ -63,7 +72,7 @@ jobs:
           assert "inmobi.com,67d6afab48bd48efbbb504284f3726e5,DIRECT,83e75a7ae333ca9d" in sellers
           assert "vungle.com,6af12a3093f426c33e7af61e,DIRECT,c107d686becd2d77" in sellers
           assert "com.simon0090.holduntildawn" in (site / "index.html").read_text(encoding="utf-8")
-          print("Public website and all five advertising platform authorizations verified.")
+          print("Public website and all six advertising platform authorizations verified.")
           PY
       - name: Upload public website
         uses: actions/upload-pages-artifact@v3
