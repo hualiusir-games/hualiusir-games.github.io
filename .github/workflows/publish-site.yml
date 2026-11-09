@@ -36,20 +36,32 @@ jobs:
           # BIGO assigns a seller ID for each website domain.
           printf '\nbigo.sg, adbbxsny1t, DIRECT\n' >> _site/app-ads.txt
           touch _site/.nojekyll
-      - name: Verify website and advertising authorization
+      - name: Merge and verify website advertising authorization
         run: |
           python3 - <<'PY'
           from pathlib import Path
           site = Path("_site")
           for name in ["index.html", "privacy.html", "delete-data.html", "app-ads.txt", "robots.txt", "assets/icon.png", "assets/defense.png"]:
               assert (site / name).stat().st_size > 0, name
-          sellers = {"".join(line.split()) for line in (site / "app-ads.txt").read_text(encoding="utf-8-sig").splitlines()}
+          ads_path = site / "app-ads.txt"
+          lines = ads_path.read_text(encoding="utf-8-sig").splitlines()
+          normalize = lambda line: "".join(line.split())
+          sellers = {normalize(line) for line in lines}
+          unity_lines = [line.strip() for line in Path(".site-data/unity-app-ads.txt").read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+          assert len(unity_lines) == 163, "Unity seller list must contain all dashboard entries"
+          for line in unity_lines:
+              if normalize(line) not in sellers:
+                  lines.append(line)
+                  sellers.add(normalize(line))
+          ads_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+          assert all(normalize(line) in sellers for line in unity_lines)
+          assert "unity.com,162167400,DIRECT,96cabb5fbdde37a7" in sellers
           assert "bigo.sg,adbbxsny1t,DIRECT" in sellers
           assert "google.com,pub-4447056814927396,DIRECT,f08c47fec0942fa0" in sellers
           assert "inmobi.com,67d6afab48bd48efbbb504284f3726e5,DIRECT,83e75a7ae333ca9d" in sellers
           assert "vungle.com,6af12a3093f426c33e7af61e,DIRECT,c107d686becd2d77" in sellers
           assert "com.simon0090.holduntildawn" in (site / "index.html").read_text(encoding="utf-8")
-          print("Public website and all four advertising platform authorizations verified.")
+          print("Public website and all five advertising platform authorizations verified.")
           PY
       - name: Upload public website
         uses: actions/upload-pages-artifact@v3
